@@ -141,10 +141,28 @@ const mockAppointments: Appointment[] = [
 
 
 export const getDoctorsBySpecialization = (specializations: string[]): Doctor[] => {
-  const lowerCaseSpecializations = specializations.map(s => s.toLowerCase().replace(/s$/, '').replace(/y$/, 'i')); // handle pluralization (e.g. cardiology -> cardiolog)
-  const doctors = mockDoctors.filter(doctor =>
-    lowerCaseSpecializations.some(spec => doctor.specialization.toLowerCase().includes(spec))
-  );
+  const normalizedSpecs = specializations.map(s => {
+    const lower = s.toLowerCase();
+    if (lower.endsWith('logist')) {
+      return lower.slice(0, -3); // cardiologist -> cardiolog
+    }
+    if (lower.endsWith('ist')) {
+      return lower.slice(0, -3); // dentist -> dent
+    }
+    if (lower.endsWith('ian')) {
+      return lower.slice(0, -3); // pediatrician -> pediatric
+    }
+    if (lower.endsWith('s')) {
+      return lower.slice(0, -1); // orthopedics -> orthopedic
+    }
+    return lower;
+  });
+
+  const doctors = mockDoctors.filter(doctor => {
+    const doctorSpec = doctor.specialization.toLowerCase();
+    return normalizedSpecs.some(spec => doctorSpec.includes(spec));
+  });
+
   // If no specialist is found, recommend a General Practitioner
   if (doctors.length === 0) {
       return mockDoctors.filter(doc => doc.specialization.toLowerCase() === 'general practitioner');
