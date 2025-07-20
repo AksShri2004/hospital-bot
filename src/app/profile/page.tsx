@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ const profileFormSchema = z.object({
   fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
   email: z.string().email(),
   dob: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid date format." }),
+  abhaId: z.string().optional(),
   medicalRecords: z.string().optional(),
 });
 
@@ -23,6 +24,7 @@ const currentUser = {
   fullName: 'Alex Doe',
   email: 'alex.doe@example.com',
   dob: '1990-05-15',
+  abhaId: '12-3456-7890-1234',
   medicalRecords: 'Diagnosed with asthma in 2015. Allergic to penicillin. Seasonal allergies to pollen.'
 }
 
@@ -86,19 +88,34 @@ export default function ProfilePage() {
                   )}
                 />
               </div>
-              <FormField
-                control={form.control}
-                name="dob"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date of Birth</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="dob"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date of Birth</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="abhaId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ABHA ID (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., 12-3456-7890-1234" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+              </div>
               <FormField
                 control={form.control}
                 name="medicalRecords"
@@ -112,6 +129,9 @@ export default function ProfilePage() {
                         {...field}
                       />
                     </FormControl>
+                    <FormDescription>
+                      Or provide your ABHA ID to automatically fetch your records (feature coming soon).
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
