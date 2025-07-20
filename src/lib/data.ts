@@ -1,3 +1,4 @@
+
 export interface Doctor {
   id: number;
   name: string;
@@ -20,10 +21,11 @@ const mockDoctors: Doctor[] = [
     id: 1,
     name: 'Dr. Evelyn Reed',
     specialization: 'Cardiology',
-    location: 'Downtown Medical Center',
+    location: 'Heart & Vascular Institute',
     availability: {
       '2024-08-10': ['09:00 AM', '11:00 AM', '02:00 PM'],
       '2024-08-11': ['10:00 AM', '03:00 PM'],
+      '2024-08-12': ['09:00 AM', '11:00 AM'],
     },
     image: 'https://placehold.co/400x400',
   },
@@ -31,10 +33,11 @@ const mockDoctors: Doctor[] = [
     id: 2,
     name: 'Dr. Marcus Thorne',
     specialization: 'Dermatology',
-    location: 'Uptown Skin Clinic',
+    location: 'The Skin Health Center',
     availability: {
       '2024-08-10': ['09:30 AM', '11:30 AM'],
       '2024-08-12': ['01:00 PM', '04:00 PM'],
+      '2024-08-13': ['10:00 AM', '12:00 PM'],
     },
     image: 'https://placehold.co/400x400',
   },
@@ -42,10 +45,11 @@ const mockDoctors: Doctor[] = [
     id: 3,
     name: 'Dr. Elena Petrova',
     specialization: 'Neurology',
-    location: 'City General Hospital',
+    location: 'City General Hospital - Neurology Wing',
     availability: {
       '2024-08-12': ['08:00 AM', '10:00 AM'],
       '2024-08-13': ['11:00 AM', '02:30 PM'],
+      '2024-08-14': ['08:00 AM', '10:00 AM'],
     },
     image: 'https://placehold.co/400x400',
   },
@@ -57,6 +61,7 @@ const mockDoctors: Doctor[] = [
     availability: {
       '2024-08-11': ['09:00 AM', '01:00 PM'],
       '2024-08-14': ['10:00 AM', '03:00 PM'],
+      '2024-08-15': ['09:00 AM', '11:30 AM'],
     },
     image: 'https://placehold.co/400x400',
   },
@@ -68,6 +73,7 @@ const mockDoctors: Doctor[] = [
     availability: {
       '2024-08-13': ['09:00 AM', '11:00 AM'],
       '2024-08-15': ['02:00 PM', '04:00 PM'],
+      '2024-08-16': ['09:00 AM', '11:00 AM'],
     },
     image: 'https://placehold.co/400x400',
   },
@@ -79,6 +85,31 @@ const mockDoctors: Doctor[] = [
     availability: {
       '2024-08-10': ['10:00 AM', '12:00 PM', '03:00 PM'],
       '2024-08-11': ['09:00 AM', '11:00 AM'],
+      '2024-08-12': ['02:00 PM', '04:00 PM'],
+    },
+    image: 'https://placehold.co/400x400',
+  },
+  {
+    id: 7,
+    name: 'Dr. Anya Sharma',
+    specialization: 'Oncology',
+    location: 'Hope Cancer Center',
+    availability: {
+      '2024-08-12': ['10:30 AM', '01:30 PM'],
+      '2024-08-14': ['09:00 AM', '12:00 PM'],
+      '2024-08-16': ['11:00 AM', '02:00 PM'],
+    },
+    image: 'https://placehold.co/400x400',
+  },
+  {
+    id: 8,
+    name: 'Dr. Ben Carter',
+    specialization: 'Pediatrics',
+    location: 'Children First Pediatrics',
+    availability: {
+      '2024-08-10': ['09:00 AM', '10:00 AM', '11:00 AM'],
+      '2024-08-13': ['02:00 PM', '03:00 PM', '04:00 PM'],
+      '2024-08-15': ['09:00 AM', '10:00 AM'],
     },
     image: 'https://placehold.co/400x400',
   },
@@ -110,7 +141,7 @@ const mockAppointments: Appointment[] = [
 
 
 export const getDoctorsBySpecialization = (specializations: string[]): Doctor[] => {
-  const lowerCaseSpecializations = specializations.map(s => s.toLowerCase().replace(/s$/, '')); // handle pluralization
+  const lowerCaseSpecializations = specializations.map(s => s.toLowerCase().replace(/s$/, '').replace(/y$/, 'i')); // handle pluralization (e.g. cardiology -> cardiolog)
   const doctors = mockDoctors.filter(doctor =>
     lowerCaseSpecializations.some(spec => doctor.specialization.toLowerCase().includes(spec))
   );
