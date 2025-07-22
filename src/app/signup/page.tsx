@@ -44,9 +44,9 @@ export default function SignupPage() {
       
       toast({
         title: "Account Created!",
-        description: "You have been successfully signed up.",
+        description: "Welcome to HealthAssist AI.",
       });
-      router.push("/");
+      router.push("/onboarding");
 
     } catch (error: any) {
       toast({
