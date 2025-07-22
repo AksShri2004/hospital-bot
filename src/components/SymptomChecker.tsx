@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -54,10 +55,10 @@ export default function SymptomChecker() {
       });
       setAnalysis(result);
       if (result.relevantDoctorSpecializations.length > 0) {
-        const doctors = getDoctorsBySpecialization(result.relevantDoctorSpecializations);
+        const doctors = await getDoctorsBySpecialization(result.relevantDoctorSpecializations);
         setRecommendedDoctors(doctors);
       } else {
-        const doctors = getDoctorsBySpecialization(['General Practitioner']);
+        const doctors = await getDoctorsBySpecialization(['General Practitioner']);
         setRecommendedDoctors(doctors);
       }
     } catch (error) {

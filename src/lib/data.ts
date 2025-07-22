@@ -1,7 +1,9 @@
 
+import { collection, addDoc, getDocs, query, where, doc, getDoc, orderBy } from "firebase/firestore"; 
+import { db, auth } from "./firebase";
 
 export interface Doctor {
-  id: number;
+  id: string;
   name: string;
   specialization: string;
   location: string;
@@ -10,16 +12,18 @@ export interface Doctor {
 }
 
 export interface Appointment {
-  id: number;
+  id: string;
   doctor: Doctor;
+  doctorId: string;
   date: string;
   time: string;
   status: 'Upcoming' | 'Completed' | 'Cancelled';
+  userId: string;
 }
 
-const mockDoctors: Doctor[] = [
+// You will need to seed this data into your Firestore "doctors" collection
+export const mockDoctors: Omit<Doctor, 'id'>[] = [
   {
-    id: 1,
     name: 'Dr. Evelyn Reed',
     specialization: 'Cardiology',
     location: 'Heart & Vascular Institute',
@@ -31,7 +35,6 @@ const mockDoctors: Doctor[] = [
     image: 'https://placehold.co/400x400',
   },
   {
-    id: 2,
     name: 'Dr. Marcus Thorne',
     specialization: 'Dermatology',
     location: 'The Skin Health Center',
@@ -43,7 +46,6 @@ const mockDoctors: Doctor[] = [
     image: 'https://placehold.co/400x400',
   },
   {
-    id: 3,
     name: 'Dr. Elena Petrova',
     specialization: 'Neurology',
     location: 'City General Hospital - Neurology Wing',
@@ -55,7 +57,6 @@ const mockDoctors: Doctor[] = [
     image: 'https://placehold.co/400x400',
   },
   {
-    id: 4,
     name: 'Dr. Samuel Chen',
     specialization: 'Orthopedics',
     location: 'Metro Orthopedic Institute',
@@ -67,7 +68,6 @@ const mockDoctors: Doctor[] = [
     image: 'https://placehold.co/400x400',
   },
   {
-    id: 5,
     name: 'Dr. Isabella Vance',
     specialization: 'Gastroenterology',
     location: 'Midtown Digestive Health',
@@ -79,7 +79,6 @@ const mockDoctors: Doctor[] = [
     image: 'https://placehold.co/400x400',
   },
   {
-    id: 6,
     name: 'Dr. Liam Gallagher',
     specialization: 'General Practitioner',
     location: 'Community Health Clinic',
@@ -91,7 +90,6 @@ const mockDoctors: Doctor[] = [
     image: 'https://placehold.co/400x400',
   },
   {
-    id: 7,
     name: 'Dr. Anya Sharma',
     specialization: 'Oncology',
     location: 'Hope Cancer Center',
@@ -103,7 +101,6 @@ const mockDoctors: Doctor[] = [
     image: 'https://placehold.co/400x400',
   },
   {
-    id: 8,
     name: 'Dr. Ben Carter',
     specialization: 'Pediatrics',
     location: 'Children First Pediatrics',
@@ -116,74 +113,81 @@ const mockDoctors: Doctor[] = [
   },
 ];
 
-let mockAppointments: Appointment[] = [
-    {
-        id: 1,
-        doctor: mockDoctors[0],
-        date: '2024-08-20',
-        time: '09:00 AM',
-        status: 'Upcoming',
-    },
-    {
-        id: 2,
-        doctor: mockDoctors[2],
-        date: '2024-07-25',
-        time: '11:00 AM',
-        status: 'Completed',
-    },
-    {
-        id: 3,
-        doctor: mockDoctors[1],
-        date: '2024-07-15',
-        time: '01:00 PM',
-        status: 'Completed',
-    },
-];
 
-export const addAppointment = (appointment: Omit<Appointment, 'id' | 'status'>) => {
-    const newAppointment: Appointment = {
+export const addAppointment = async (appointment: Omit<Appointment, 'id' | 'status' | 'userId' | 'doctor'> & { doctorId: string }) => {
+    const user = auth.currentUser;
+    if (!user) throw new Error("User not logged in");
+
+    const newAppointment = {
         ...appointment,
-        id: mockAppointments.length + 1,
-        status: 'Upcoming',
+        userId: user.uid,
+        status: 'Upcoming' as const,
     };
-    mockAppointments = [newAppointment, ...mockAppointments];
-    return newAppointment;
+    const docRef = await addDoc(collection(db, "appointments"), newAppointment);
+    return { ...newAppointment, id: docRef.id };
 };
 
 
-export const getDoctorsBySpecialization = (specializations: string[]): Doctor[] => {
-  const normalizedSpecs = specializations.map(s => {
-    const lower = s.toLowerCase();
-    if (lower.endsWith('logist')) {
-      return lower.slice(0, -3); // cardiologist -> cardiolog
-    }
-     if (lower.endsWith('logy')) {
-      return lower.slice(0, -4); // cardiology -> cardio
-    }
-    if (lower.endsWith('ist')) {
-      return lower.slice(0, -3); // dentist -> dent
-    }
-    if (lower.endsWith('ian')) {
-      return lower.slice(0, -3); // pediatrician -> pediatric
-    }
-    if (lower.endsWith('s')) {
-      return lower.slice(0, -1); // orthopedics -> orthopedic
-    }
-    return lower;
-  });
+export const getDoctorsBySpecialization = async (specializations: string[]): Promise<Doctor[]> => {
+  const doctorsCol = collection(db, 'doctors');
+  let q;
 
-  const doctors = mockDoctors.filter(doctor => {
-    const doctorSpec = doctor.specialization.toLowerCase();
-    return normalizedSpecs.some(spec => doctorSpec.includes(spec));
-  });
-
-  // If no specialist is found, recommend a General Practitioner
-  if (doctors.length === 0) {
-      return mockDoctors.filter(doc => doc.specialization.toLowerCase() === 'general practitioner');
+  if (specializations.length > 0 && !specializations.includes('General Practitioner')) {
+     q = query(doctorsCol, where("specialization", "in", specializations));
+  } else {
+    // If no specific specialization or if "General Practitioner" is requested, fetch all or just GPs.
+    // For simplicity, we can fetch GPs in the else case.
+    q = query(doctorsCol, where("specialization", "==", 'General Practitioner'));
   }
+ 
+  const querySnapshot = await getDocs(q);
+  const doctors = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Doctor));
+  
+  // Fallback to General Practitioner if no specialists found
+  if (doctors.length === 0 && !specializations.includes('General Practitioner')) {
+    const gpQuery = query(doctorsCol, where("specialization", "==", "General Practitioner"));
+    const gpSnapshot = await getDocs(gpQuery);
+    return gpSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Doctor));
+  }
+  
   return doctors;
 };
 
-export const getAllDoctors = (): Doctor[] => mockDoctors;
-export const getDoctorById = (id: number): Doctor | undefined => mockDoctors.find(d => d.id === id);
-export const getAppointments = (): Appointment[] => mockAppointments;
+export const getAllDoctors = async (): Promise<Doctor[]> => {
+    const querySnapshot = await getDocs(collection(db, "doctors"));
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Doctor));
+};
+
+export const getDoctorById = async (id: string): Promise<Doctor | undefined> => {
+    const docRef = doc(db, "doctors", id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() } as Doctor;
+    }
+    return undefined;
+};
+
+export const getAppointments = async (): Promise<Appointment[]> => {
+    const user = auth.currentUser;
+    if (!user) return [];
+
+    const q = query(collection(db, "appointments"), where("userId", "==", user.uid), orderBy("date", "desc"));
+    const querySnapshot = await getDocs(q);
+    
+    const appointments = await Promise.all(querySnapshot.docs.map(async (doc) => {
+        const data = doc.data();
+        const doctor = await getDoctorById(data.doctorId);
+        if (!doctor) {
+            // This case should ideally not happen if data integrity is maintained
+            console.error(`Doctor with ID ${data.doctorId} not found for appointment ${doc.id}`);
+            return null;
+        }
+        return { 
+            id: doc.id, 
+            ...data,
+            doctor,
+        } as Appointment;
+    }));
+
+    return appointments.filter((app): app is Appointment => app !== null);
+};

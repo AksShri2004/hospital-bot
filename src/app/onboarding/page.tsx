@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useForm } from 'react-hook-form';
@@ -9,19 +10,22 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { FileHeart } from 'lucide-react';
+import { FileHeart, Loader2 } from 'lucide-react';
 import { withAuth, useAuth } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const onboardingFormSchema = z.object({
   fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
-  dob: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Please enter a valid date." }),
+  dob: z.string().refine((val) => val === '' || !isNaN(Date.parse(val)), { message: "Please enter a valid date." }).optional(),
   abhaId: z.string().optional(),
   medicalRecords: z.string().optional(),
 });
+
+type OnboardingFormValues = z.infer<typeof onboardingFormSchema>;
 
 function OnboardingPage() {
   const { toast } = useToast();
@@ -29,7 +33,7 @@ function OnboardingPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<z.infer<typeof onboardingFormSchema>>({
+  const form = useForm<OnboardingFormValues>({
     resolver: zodResolver(onboardingFormSchema),
     defaultValues: {
       fullName: "",
@@ -41,19 +45,35 @@ function OnboardingPage() {
 
   useEffect(() => {
     if (user?.displayName) {
-      form.reset({ fullName: user.displayName });
+      form.setValue('fullName', user.displayName);
     }
   }, [user, form]);
 
-  function onSubmit(values: z.infer<typeof onboardingFormSchema>) {
+  async function onSubmit(values: OnboardingFormValues) {
+    if (!user) return;
     setIsSubmitting(true);
-    // In a real app, this would update the user's data in the database
-    console.log(values);
-    toast({
-      title: 'Information Saved!',
-      description: 'Your medical profile has been created.',
-    });
-    router.push('/');
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      const profileData = {
+        email: user.email,
+        ...values,
+      };
+      await setDoc(userDocRef, profileData);
+      
+      toast({
+        title: 'Information Saved!',
+        description: 'Your medical profile has been created.',
+      });
+      router.push('/');
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: 'Save Failed',
+            description: error.message,
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   }
 
   return (

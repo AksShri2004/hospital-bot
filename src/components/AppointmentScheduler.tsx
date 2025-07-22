@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -7,6 +8,7 @@ import { Doctor, addAppointment } from '@/lib/data';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { DialogClose, DialogFooter } from '@/components/ui/dialog';
+import { Loader2 } from 'lucide-react';
 
 interface AppointmentSchedulerProps {
   doctor: Doctor;
@@ -17,13 +19,14 @@ export default function AppointmentScheduler({ doctor, onBookingConfirmed }: App
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const { toast } = useToast();
+  const [isBooking, setIsBooking] = useState(false);
 
   const handleDateSelect = (selectedDate: Date | undefined) => {
     setDate(selectedDate);
     setSelectedTime(null); // Reset time when date changes
   }
 
-  const handleBooking = () => {
+  const handleBooking = async () => {
     if (!date || !selectedTime) {
       toast({
         variant: 'destructive',
@@ -33,18 +36,29 @@ export default function AppointmentScheduler({ doctor, onBookingConfirmed }: App
       return;
     }
     
-    addAppointment({
-      doctor,
-      date: format(date, 'yyyy-MM-dd'),
-      time: selectedTime,
-    });
+    setIsBooking(true);
+    try {
+      await addAppointment({
+        doctorId: doctor.id,
+        date: format(date, 'yyyy-MM-dd'),
+        time: selectedTime,
+      });
 
-    toast({
-      title: 'Appointment Booked!',
-      description: `Your appointment with ${doctor.name} on ${format(date, 'PPP')} at ${selectedTime} is confirmed.`,
-      className: "bg-accent text-accent-foreground border-accent-foreground/20",
-    });
-    onBookingConfirmed();
+      toast({
+        title: 'Appointment Booked!',
+        description: `Your appointment with ${doctor.name} on ${format(date, 'PPP')} at ${selectedTime} is confirmed.`,
+        className: "bg-accent text-accent-foreground border-accent-foreground/20",
+      });
+      onBookingConfirmed();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Booking Failed',
+        description: error.message,
+      });
+    } finally {
+      setIsBooking(false);
+    }
   };
 
   const today = new Date();
@@ -86,9 +100,10 @@ export default function AppointmentScheduler({ doctor, onBookingConfirmed }: App
       )}
       <DialogFooter className="mt-4">
         <DialogClose asChild>
-            <Button variant="ghost">Cancel</Button>
+            <Button variant="ghost" disabled={isBooking}>Cancel</Button>
         </DialogClose>
-        <Button onClick={handleBooking} disabled={!date || !selectedTime}>
+        <Button onClick={handleBooking} disabled={!date || !selectedTime || isBooking}>
+          {isBooking && <Loader2 className="animate-spin" />}
           Confirm Appointment
         </Button>
       </DialogFooter>

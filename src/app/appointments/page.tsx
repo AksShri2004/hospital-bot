@@ -1,9 +1,10 @@
+
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAppointments, Appointment } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Stethoscope } from "lucide-react";
+import { Calendar, Clock, Loader2, Stethoscope } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { withAuth } from "@/lib/auth";
 import { useEffect, useState } from "react";
@@ -53,12 +54,25 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
 
 function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // We are getting the appointments on mount.
-    // In a real app, this would be a fetch call.
-    setAppointments(getAppointments());
+    const fetchAppointments = async () => {
+      setIsLoading(true);
+      const fetchedAppointments = await getAppointments();
+      setAppointments(fetchedAppointments);
+      setIsLoading(false);
+    }
+    fetchAppointments();
   }, []);
+
+  if (isLoading) {
+    return (
+       <div className="flex justify-center items-center min-h-[calc(100vh-4rem)]">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    )
+  }
 
   const upcomingAppointments = appointments.filter(a => a.status === 'Upcoming' && new Date(a.date) >= new Date()).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const pastAppointments = appointments.filter(a => a.status !== 'Upcoming' || new Date(a.date) < new Date()).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());

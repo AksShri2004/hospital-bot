@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useForm } from 'react-hook-form';
@@ -9,33 +10,30 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { User } from 'lucide-react';
+import { Loader2, User } from 'lucide-react';
 import { withAuth, useAuth } from '@/lib/auth';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { updateProfile } from 'firebase/auth';
 
 const profileFormSchema = z.object({
   fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
   email: z.string().email(),
-  dob: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid date format." }),
+  dob: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid date format." }).optional().or(z.literal('')),
   abhaId: z.string().optional(),
   medicalRecords: z.string().optional(),
 });
 
-// Mock user data - we'll replace this with data from auth and a database later
-const getMockData = (user: any) => ({
-  fullName: user.displayName || 'Alex Doe',
-  email: user.email || 'alex.doe@example.com',
-  dob: '1990-05-15',
-  abhaId: '12-3456-7890-1234',
-  medicalRecords: 'Diagnosed with asthma in 2015. Allergic to penicillin. Seasonal allergies to pollen.'
-});
-
+type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 function ProfilePage() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<z.infer<typeof profileFormSchema>>({
+  const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       fullName: "",
@@ -47,21 +45,61 @@ function ProfilePage() {
   });
 
   useEffect(() => {
-    if (user) {
-      // In a real app, you would fetch this data from your database
-      const userData = getMockData(user);
-      form.reset(userData);
+    async function fetchProfile() {
+      if (user) {
+        setIsLoading(true);
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          form.reset(userDoc.data() as ProfileFormValues);
+        } else {
+          // Prefill from auth if no profile exists
+          form.reset({
+            fullName: user.displayName || '',
+            email: user.email || '',
+          });
+        }
+        setIsLoading(false);
+      }
     }
+
+    fetchProfile();
   }, [user, form]);
 
 
-  function onSubmit(values: z.infer<typeof profileFormSchema>) {
-    // In a real app, this would update the user's data in the database
-    console.log(values);
-    toast({
-      title: 'Profile Updated',
-      description: 'Your medical records and personal information have been saved.',
-    });
+  async function onSubmit(values: ProfileFormValues) {
+    if (!user) return;
+    setIsSubmitting(true);
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      await setDoc(userDocRef, values, { merge: true });
+
+      // Update auth profile if name changed
+      if (user.displayName !== values.fullName) {
+        await updateProfile(user, { displayName: values.fullName });
+      }
+
+      toast({
+        title: 'Profile Updated',
+        description: 'Your medical records and personal information have been saved.',
+      });
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: 'Update Failed',
+            description: error.message,
+        });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+  
+  if (isLoading) {
+    return (
+       <div className="flex justify-center items-center min-h-[calc(100vh-4rem)]">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    )
   }
 
   return (
@@ -149,13 +187,16 @@ function ProfilePage() {
                       />
                     </FormControl>
                     <FormDescription>
-                      Or provide your ABHA ID to automatically fetch your records (feature coming soon).
+                      This information helps our AI provide more accurate suggestions.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="animate-spin" />}
+                Save Changes
+              </Button>
             </form>
           </Form>
         </CardContent>
