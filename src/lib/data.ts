@@ -1,5 +1,5 @@
 
-import { collection, addDoc, getDocs, query, where, doc, getDoc, orderBy } from "firebase/firestore"; 
+import { collection, addDoc, getDocs, query, where, doc, getDoc, orderBy, Timestamp } from "firebase/firestore"; 
 import { db, auth } from "./firebase";
 
 export interface Doctor {
@@ -114,6 +114,24 @@ export const mockDoctors: Omit<Doctor, 'id'>[] = [
 ];
 
 
+const processDoctorData = (doc: any): Doctor => {
+    const data = doc.data();
+    const availability: Record<string, string[]> = {};
+    if (data.availability) {
+        Object.keys(data.availability).forEach(key => {
+            if (data.availability[key] instanceof Timestamp) {
+                // This case is unlikely if you seeded strings, but good to have
+                const date = (data.availability[key] as Timestamp).toDate();
+                const dateString = date.toISOString().split('T')[0];
+                availability[dateString] = data.availability[key];
+            } else {
+                 availability[key] = data.availability[key];
+            }
+        });
+    }
+    return { id: doc.id, ...data, availability } as Doctor;
+}
+
 export const addAppointment = async (appointment: Omit<Appointment, 'id' | 'status' | 'userId' | 'doctor'> & { doctorId: string }) => {
     const user = auth.currentUser;
     if (!user) throw new Error("User not logged in");
@@ -141,13 +159,13 @@ export const getDoctorsBySpecialization = async (specializations: string[]): Pro
   }
  
   const querySnapshot = await getDocs(q);
-  const doctors = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Doctor));
+  const doctors = querySnapshot.docs.map(processDoctorData);
   
   // Fallback to General Practitioner if no specialists found
   if (doctors.length === 0 && !specializations.includes('General Practitioner')) {
     const gpQuery = query(doctorsCol, where("specialization", "==", "General Practitioner"));
     const gpSnapshot = await getDocs(gpQuery);
-    return gpSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Doctor));
+    return gpSnapshot.docs.map(processDoctorData);
   }
   
   return doctors;
@@ -155,14 +173,14 @@ export const getDoctorsBySpecialization = async (specializations: string[]): Pro
 
 export const getAllDoctors = async (): Promise<Doctor[]> => {
     const querySnapshot = await getDocs(collection(db, "doctors"));
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Doctor));
+    return querySnapshot.docs.map(processDoctorData);
 };
 
 export const getDoctorById = async (id: string): Promise<Doctor | undefined> => {
     const docRef = doc(db, "doctors", id);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as Doctor;
+        return processDoctorData(docSnap);
     }
     return undefined;
 };
