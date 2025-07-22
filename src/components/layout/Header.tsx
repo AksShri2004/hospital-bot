@@ -26,7 +26,6 @@ const navLinks = [
   { href: '/#symptom-checker', label: 'Symptom Checker' },
   { href: '/appointments', label: 'Appointments' },
   { href: '/profile', label: 'Medical Records' },
-  { href: '/seed-data', label: 'Seed Data' },
 ];
 
 export default function Header() {
