@@ -6,7 +6,7 @@ import { getAppointments, Appointment } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, Loader2, Stethoscope } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { withAuth } from "@/lib/auth";
+import { withAuth, useAuth } from "@/lib/auth";
 import { useEffect, useState } from "react";
 
 function AppointmentCard({ appointment }: { appointment: Appointment }) {
@@ -53,18 +53,21 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
 }
 
 function AppointmentsPage() {
+  const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchAppointments = async () => {
-      setIsLoading(true);
-      const fetchedAppointments = await getAppointments();
-      setAppointments(fetchedAppointments);
-      setIsLoading(false);
+      if (user) {
+        setIsLoading(true);
+        const fetchedAppointments = await getAppointments();
+        setAppointments(fetchedAppointments);
+        setIsLoading(false);
+      }
     }
     fetchAppointments();
-  }, []);
+  }, [user]);
 
   if (isLoading) {
     return (
