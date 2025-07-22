@@ -8,7 +8,6 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, getDocs } from 'firebase/firestore';
 import { mockDoctors } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
-import { withAuth } from '@/lib/auth';
 
 function SeedDataPage() {
   const [isSeeding, setIsSeeding] = useState(false);
@@ -94,4 +93,4 @@ function SeedDataPage() {
   );
 }
 
-export default withAuth(SeedDataPage);
+export default SeedDataPage;
