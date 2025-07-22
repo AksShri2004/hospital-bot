@@ -116,20 +116,7 @@ export const mockDoctors: Omit<Doctor, 'id'>[] = [
 
 const processDoctorData = (doc: any): Doctor => {
     const data = doc.data();
-    const availability: Record<string, string[]> = {};
-    if (data.availability) {
-        Object.keys(data.availability).forEach(key => {
-            if (data.availability[key] instanceof Timestamp) {
-                // This case is unlikely if you seeded strings, but good to have
-                const date = (data.availability[key] as Timestamp).toDate();
-                const dateString = date.toISOString().split('T')[0];
-                availability[dateString] = data.availability[key];
-            } else {
-                 availability[key] = data.availability[key];
-            }
-        });
-    }
-    return { id: doc.id, ...data, availability } as Doctor;
+    return { id: doc.id, ...data } as Doctor;
 }
 
 export const addAppointment = async (appointment: Omit<Appointment, 'id' | 'status' | 'userId' | 'doctor'> & { doctorId: string }) => {
