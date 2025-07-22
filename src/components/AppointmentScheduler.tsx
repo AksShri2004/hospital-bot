@@ -82,7 +82,7 @@ export default function AppointmentScheduler({ doctor, onBookingConfirmed }: App
         <div className="animate-in fade-in duration-300">
           <h4 className="font-medium mb-2 text-center">Select a Time for {format(date, 'PPP')}</h4>
           <div className="grid grid-cols-3 gap-2">
-            {availableTimes.length > 0 ? (
+            {Array.isArray(availableTimes) && availableTimes.length > 0 ? (
               availableTimes.map((time) => (
                 <Button
                   key={time}
