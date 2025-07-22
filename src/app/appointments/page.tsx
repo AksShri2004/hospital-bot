@@ -1,8 +1,11 @@
+'use client'
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAppointments, Appointment } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, Stethoscope } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { withAuth } from "@/lib/auth";
 
 function AppointmentCard({ appointment }: { appointment: Appointment }) {
   const getBadgeVariant = (status: Appointment['status']) => {
@@ -47,7 +50,7 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
   )
 }
 
-export default function AppointmentsPage() {
+function AppointmentsPage() {
   const appointments = getAppointments();
   const upcomingAppointments = appointments.filter(a => a.status === 'Upcoming' && new Date(a.date) >= new Date());
   const pastAppointments = appointments.filter(a => a.status !== 'Upcoming' || new Date(a.date) < new Date());
@@ -86,3 +89,6 @@ export default function AppointmentsPage() {
     </div>
   );
 }
+
+
+export default withAuth(AppointmentsPage);

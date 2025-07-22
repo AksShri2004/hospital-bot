@@ -3,10 +3,24 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, HeartPulse } from 'lucide-react';
+import { Menu, HeartPulse, LogOut } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { useAuth } from '@/lib/auth';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+
 
 const navLinks = [
   { href: '/#symptom-checker', label: 'Symptom Checker' },
@@ -17,6 +31,16 @@ const navLinks = [
 export default function Header() {
   const pathname = usePathname();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const { user, loading } = useAuth();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out.",
+    });
+  };
 
   const NavLinks = ({ className, onLinkClick }: { className?: string; onLinkClick?: () => void }) => (
     <nav className={cn('flex items-center gap-4 lg:gap-6', className)}>
@@ -51,13 +75,43 @@ export default function Header() {
           </div>
         </div>
 
-        <div className="hidden md:flex items-center gap-2">
-          <Button variant="ghost" asChild>
-            <Link href="/login">Log In</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/signup">Sign Up</Link>
-          </Button>
+        <div className="hidden md:flex items-center gap-4">
+          {loading ? null : user ? (
+             <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User'} />
+                    <AvatarFallback>{user.displayName?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <Button variant="ghost" asChild>
+                <Link href="/login">Log In</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/signup">Sign Up</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         <div className="md:hidden">
@@ -78,12 +132,20 @@ export default function Header() {
                 </div>
                 <NavLinks className="flex-col items-start gap-4" onLinkClick={() => setIsSheetOpen(false)} />
                 <div className="mt-auto flex flex-col space-y-2">
-                  <Button variant="outline" asChild>
-                    <Link href="/login" onClick={() => setIsSheetOpen(false)}>Log In</Link>
-                  </Button>
-                  <Button asChild>
-                    <Link href="/signup" onClick={() => setIsSheetOpen(false)}>Sign Up</Link>
-                  </Button>
+                  {loading ? null : user ? (
+                    <Button variant="outline" onClick={() => { handleLogout(); setIsSheetOpen(false); }}>
+                      Log Out
+                    </Button>
+                  ) : (
+                    <>
+                      <Button variant="outline" asChild>
+                        <Link href="/login" onClick={() => setIsSheetOpen(false)}>Log In</Link>
+                      </Button>
+                      <Button asChild>
+                        <Link href="/signup" onClick={() => setIsSheetOpen(false)}>Sign Up</Link>
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </SheetContent>

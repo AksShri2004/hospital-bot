@@ -10,6 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { User } from 'lucide-react';
+import { withAuth, useAuth } from '@/lib/auth';
+import { useEffect } from 'react';
 
 const profileFormSchema = z.object({
   fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
@@ -19,22 +21,39 @@ const profileFormSchema = z.object({
   medicalRecords: z.string().optional(),
 });
 
-// Mock user data
-const currentUser = {
-  fullName: 'Alex Doe',
-  email: 'alex.doe@example.com',
+// Mock user data - we'll replace this with data from auth and a database later
+const getMockData = (user: any) => ({
+  fullName: user.displayName || 'Alex Doe',
+  email: user.email || 'alex.doe@example.com',
   dob: '1990-05-15',
   abhaId: '12-3456-7890-1234',
   medicalRecords: 'Diagnosed with asthma in 2015. Allergic to penicillin. Seasonal allergies to pollen.'
-}
+});
 
-export default function ProfilePage() {
+
+function ProfilePage() {
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const form = useForm<z.infer<typeof profileFormSchema>>({
     resolver: zodResolver(profileFormSchema),
-    defaultValues: currentUser,
+    defaultValues: {
+      fullName: "",
+      email: "",
+      dob: "",
+      abhaId: "",
+      medicalRecords: ""
+    },
   });
+
+  useEffect(() => {
+    if (user) {
+      // In a real app, you would fetch this data from your database
+      const userData = getMockData(user);
+      form.reset(userData);
+    }
+  }, [user, form]);
+
 
   function onSubmit(values: z.infer<typeof profileFormSchema>) {
     // In a real app, this would update the user's data in the database
@@ -81,7 +100,7 @@ export default function ProfilePage() {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="your@email.com" {...field} />
+                        <Input type="email" placeholder="your@email.com" {...field} disabled />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -144,3 +163,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+export default withAuth(ProfilePage);
