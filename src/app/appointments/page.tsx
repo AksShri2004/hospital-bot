@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, Stethoscope } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { withAuth } from "@/lib/auth";
+import { useEffect, useState } from "react";
 
 function AppointmentCard({ appointment }: { appointment: Appointment }) {
   const getBadgeVariant = (status: Appointment['status']) => {
@@ -51,9 +52,16 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
 }
 
 function AppointmentsPage() {
-  const appointments = getAppointments();
-  const upcomingAppointments = appointments.filter(a => a.status === 'Upcoming' && new Date(a.date) >= new Date());
-  const pastAppointments = appointments.filter(a => a.status !== 'Upcoming' || new Date(a.date) < new Date());
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+
+  useEffect(() => {
+    // We are getting the appointments on mount.
+    // In a real app, this would be a fetch call.
+    setAppointments(getAppointments());
+  }, []);
+
+  const upcomingAppointments = appointments.filter(a => a.status === 'Upcoming' && new Date(a.date) >= new Date()).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const pastAppointments = appointments.filter(a => a.status !== 'Upcoming' || new Date(a.date) < new Date()).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">

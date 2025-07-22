@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
-import type { Doctor } from '@/lib/data';
-import { format, addDays } from 'date-fns';
+import { Doctor, addAppointment } from '@/lib/data';
+import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 
@@ -33,7 +33,11 @@ export default function AppointmentScheduler({ doctor, onBookingConfirmed }: App
       return;
     }
     
-    console.log(`Booking confirmed for ${doctor.name} on ${format(date, 'PPP')} at ${selectedTime}`);
+    addAppointment({
+      doctor,
+      date: format(date, 'yyyy-MM-dd'),
+      time: selectedTime,
+    });
 
     toast({
       title: 'Appointment Booked!',

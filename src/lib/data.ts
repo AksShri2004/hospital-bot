@@ -1,4 +1,5 @@
 
+
 export interface Doctor {
   id: number;
   name: string;
@@ -115,7 +116,7 @@ const mockDoctors: Doctor[] = [
   },
 ];
 
-const mockAppointments: Appointment[] = [
+let mockAppointments: Appointment[] = [
     {
         id: 1,
         doctor: mockDoctors[0],
@@ -139,12 +140,25 @@ const mockAppointments: Appointment[] = [
     },
 ];
 
+export const addAppointment = (appointment: Omit<Appointment, 'id' | 'status'>) => {
+    const newAppointment: Appointment = {
+        ...appointment,
+        id: mockAppointments.length + 1,
+        status: 'Upcoming',
+    };
+    mockAppointments = [newAppointment, ...mockAppointments];
+    return newAppointment;
+};
+
 
 export const getDoctorsBySpecialization = (specializations: string[]): Doctor[] => {
   const normalizedSpecs = specializations.map(s => {
     const lower = s.toLowerCase();
     if (lower.endsWith('logist')) {
       return lower.slice(0, -3); // cardiologist -> cardiolog
+    }
+     if (lower.endsWith('logy')) {
+      return lower.slice(0, -4); // cardiology -> cardio
     }
     if (lower.endsWith('ist')) {
       return lower.slice(0, -3); // dentist -> dent
