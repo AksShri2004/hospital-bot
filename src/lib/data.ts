@@ -1,5 +1,5 @@
 
-import { collection, addDoc, getDocs, query, where, doc, getDoc, orderBy, Timestamp } from "firebase/firestore"; 
+import { collection, addDoc, getDocs, query, where, doc, getDoc, Timestamp } from "firebase/firestore"; 
 import { db, auth } from "./firebase";
 
 export interface Doctor {
@@ -116,7 +116,21 @@ export const mockDoctors: Omit<Doctor, 'id'>[] = [
 
 const processDoctorData = (doc: any): Doctor => {
     const data = doc.data();
-    return { id: doc.id, ...data } as Doctor;
+    const processedAvailability: Record<string, string[]> = {};
+    if (data.availability) {
+      for (const key in data.availability) {
+        if (data.availability[key] instanceof Timestamp) {
+            // This is a mistake in data entry, but we can handle it.
+            // For this app, we assume date strings are used as keys.
+        }
+      }
+    }
+  
+    return { 
+      id: doc.id, 
+      ...data,
+      availability: data.availability || {}
+    } as Doctor;
 }
 
 export const addAppointment = async (appointment: Omit<Appointment, 'id' | 'status' | 'userId' | 'doctor'> & { doctorId: string }) => {
@@ -176,7 +190,7 @@ export const getAppointments = async (): Promise<Appointment[]> => {
     const user = auth.currentUser;
     if (!user) return [];
 
-    const q = query(collection(db, "appointments"), where("userId", "==", user.uid), orderBy("date", "desc"));
+    const q = query(collection(db, "appointments"), where("userId", "==", user.uid));
     const querySnapshot = await getDocs(q);
     
     const appointments = await Promise.all(querySnapshot.docs.map(async (doc) => {

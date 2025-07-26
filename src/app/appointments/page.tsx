@@ -64,7 +64,6 @@ function AppointmentsPage() {
         return;
       };
 
-      setIsLoading(true);
       try {
         const fetchedAppointments = await getAppointments();
         setAppointments(fetchedAppointments);
