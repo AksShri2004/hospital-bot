@@ -58,11 +58,19 @@ function AppointmentsPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchAppointments = async () => {
-      if (user) {
-        setIsLoading(true);
+    async function fetchAppointments() {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      };
+
+      setIsLoading(true);
+      try {
         const fetchedAppointments = await getAppointments();
         setAppointments(fetchedAppointments);
+      } catch (error) {
+        console.error("Failed to fetch appointments:", error);
+      } finally {
         setIsLoading(false);
       }
     }
